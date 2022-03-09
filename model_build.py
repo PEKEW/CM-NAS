@@ -16,7 +16,6 @@ from genotypes import PRIMITIVES
 from opertaions import *
 from utils import del_tensor_element, arg_sort
 
-
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
@@ -381,9 +380,75 @@ class NetWork(nn.Module):
     def loss(self, input_tensor, target):
         return self.criterion(self(input_tensor), target)
 
-    def del_edge(self):
+
+    def new_by_edge(self,degree,edge_num):
         """
-         搜索开始阶段 直接删除掉一些多余的边 以迅速减少参数量
+        根据输入的degree和edge num删除边 同时保证计算图的连通性
+        @:param degree 计算图的度
+        @:param edge_num cell中包含的边的多少
+        """
+        """
+        define
+        - 计算图的度: 除去输出节点外,cell中其余所有节点中最大的度为计算图的度 全连接的计算图的度为5
+        - 边的数量： cell中包含多少条边 全连接的计算图的边的个数为14
+        """
+
+        # 初始化0-4节点的邻接矩阵和边个数
+        adj_matrix = {
+            [2,3,4,5],
+            [2,3,4,5],
+            [3,4,5],
+            [4,5],
+            [5]
+        }
+        edges = 14
+        sorted_idx_normal = torch.argsort(self._betas['normal'])
+        sorted_idx_reduce = torch.argsort(self._betas['reduce'])
+        del_num = edges - edge_num
+        to_be_del = {'normal':[],'reduce':[]}
+        # 生成删除索引
+
+        # TODO 抽象成一个函数
+        for i in range(del_num):
+            for idx in sorted_idx_normal:
+                if idx in [0,4]:
+                    # TODO 这里的逻辑默认链接方式是01 02 03 ... 检查
+                    del_idx = adj_matrix[0][idx]
+                elif idx in [4,8]:
+                    del_idx = adj_matrix[1][idx-4]
+                elif idx in [8,11]:
+                    del_idx = adj_matrix[2][idx-5]
+                elif idx in [11, 13]:
+                    del_idx = adj_matrix[3][idx-11]
+                else:
+                    del_idx = adj_matrix[4][0]
+                adj_matrix, if_acc = check_acc(adj_matrix, del_idx)
+                if if_acc:
+                    to_be_del['normal'].append(del_idx)
+                else:
+                    continue
+
+            for idx in sorted_idx_reduce:
+                if idx in [0, 4]:
+                    # TODO 这里的逻辑默认链接方式是01 02 03 ... 检查
+                    del_idx = adj_matrix[0][idx]
+                elif idx in [4, 8]:
+                    del_idx = adj_matrix[1][idx - 4]
+                elif idx in [8, 11]:
+                    del_idx = adj_matrix[2][idx - 5]
+                elif idx in [11, 13]:
+                    del_idx = adj_matrix[3][idx - 11]
+                else:
+                    del_idx = adj_matrix[4][0]
+                adj_matrix, if_acc = check_acc(adj_matrix, del_idx)
+                if if_acc:
+                    to_be_del['reduce'].append(del_idx)
+                else:
+                    continue
+
+    def del_edge(self,degree = 4):
+        """
+        在保证计算图是连通的情况下删除边 直到符合计算图的度
         """
         # 生成4个node的前驱节点范围的记录
         #     # [0,1], [0,2]...
@@ -482,7 +547,7 @@ class NetWork(nn.Module):
         for i in range(14):
             if i in global_reduce:
                 continue
-            reduce_beta = np.append(reduce_beta, self._betas['reduce'][i].detach().cpu())
+            reduce_beta = np.append(reduce_beta, self._betas['reduce'][i].deyuetach().cpu())
         order_dct = {'normal': normal, 'reduce': reduce}
         new_model = NetWork(self._channels, self._classes_nums, self._layers, self.criterion,
                             per_order_info=order_dct).cuda()

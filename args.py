@@ -1,5 +1,7 @@
 class Args:
     def __init__(self):
+        self.degree = 4
+        self.edge_num = 10
         self.data_path = 'data'
         self.save_path = 'saved_model'
         self.epochs = 30

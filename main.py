@@ -75,7 +75,7 @@ def main():
     architect = Architect(model, arg)
     global_steps = 0
     for epoch in range(arg.epochs):
-        ## TEST
+        # TEST
         model.del_edge()
         print("{} th EPOCH".format(epoch))
         learning_rate = scheduler.get_last_lr()[0]
@@ -92,7 +92,8 @@ def main():
 
         # epoch > 5 -> begin search
         if epoch >= arg.warm_up:
-            model.del_edge()
+            model.del_edge(degree=arg.degree)
+            model.new_by_edge(degree=arg.degree, edge_num=arg.edge_num)
         # 逻辑需要重写  目前这个if会确保下面的代码块一定不会被执行到
         if False and arg.begin_epoch < epoch < arg.end_epoch and (not model.final_tag[0] or not model.final_tag[1]):
             if not model.final_tag[0]:
