@@ -16,6 +16,7 @@ from genotypes import PRIMITIVES
 from opertaions import *
 from utils import del_tensor_element, arg_sort
 
+
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
